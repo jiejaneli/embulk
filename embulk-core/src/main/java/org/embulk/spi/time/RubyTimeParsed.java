@@ -552,9 +552,60 @@ class RubyTimeParsed extends TimeParsed {
         private boolean fail;
     }
 
+    /**
+     * Creates a java.time.Instant instance basically in the same way with Ruby v2.3.1's Time.strptime.
+     *
+     * The difference from Ruby v2.3.1's Time.strptime is that it does not consider "now" and local time zone.
+     * If the given zone is neither numerical nor predefined textual time zones, it returns defaultZoneOffset then.
+     *
+     * The method is reimplemented based on strptime from Ruby v2.3.1's lib/time.rb.
+     *
+     * @see <a href="https://svn.ruby-lang.org/cgi-bin/viewvc.cgi/tags/v2_3_1/lib/time.rb?view=markup#l427">strptime</a>
+     */
     @Override
     Instant toInstant(final ZoneOffset defaultZoneOffset) {
-        return this.toInstant(1970, 1, 1, (ZoneId)defaultZoneOffset);
+        final ZoneOffset zoneOffset = TimeZoneIds.parseRubyTimeZoneOffset(this.timeZoneName, defaultZoneOffset);
+        if (zoneOffset == null) {
+            throw new TimestampParseException(
+                "Invalid time zone ID '" + this.timeZoneName + "' in '" + this.originalString + "'");
+        }
+
+        if (this.instantSeconds != null) {
+            if (zoneOffset != ZoneOffset.UTC) {
+/*
+        if zone = d[:zone]
+          force_zone!(t, zone)
+        end
+*/
+            }
+            return this.instantSeconds;
+        }
+
+        // Leap seconds are considered as next second in Time.strptime.
+        // irb(main):002:0> Time.strptime("2001-02-03T23:59:60", "%Y-%m-%dT%H:%M:%S")
+        // => 2001-02-04 00:00:00 +0900
+
+/*
+        t = make_time(date, year, d[:mon], d[:mday], d[:hour], d[:min], d[:sec], d[:sec_fraction], d[:zone], now)
+*/
+
+        final int daysRollover = (this.hour == Integer.MIN_VALUE ? 0 : this.hour / 24);
+
+        // yday (DAY_OF_YEAR) is not considered in Time.strptime.
+        // Time.strptime("2001-128T23:59:59", "%Y-%jT%H:%M:%S")
+        // => 2001-01-01 23:59:59 +0900
+        // DateTime.strptime("2001-128T23:59:59", "%Y-%jT%H:%M:%S")
+        // => #<DateTime: 2001-05-08T23:59:59+00:00 ((2452038j,86399s,0n),+0s,2299161j)>
+        final OffsetDateTime datetime = OffsetDateTime.of(
+            (this.year == Integer.MIN_VALUE ? defaultYear : this.year),
+            (this.monthOfYear == Integer.MIN_VALUE ? defaultMonthOfYear : this.monthOfYear),
+            (this.dayOfMonth == Integer.MIN_VALUE ? defaultDayOfMonth : this.dayOfMonth),
+            (this.hour == Integer.MIN_VALUE ? 0 : this.hour % 24),
+            (this.minuteOfHour == Integer.MIN_VALUE ? 0 : this.minuteOfHour),
+            thisSecondOfMinute,
+            (this.nanoOfSecond == Integer.MIN_VALUE ? 0 : this.nanoOfSecond),
+            zoneId).plusDays(daysRollover);
+        return datetime.toInstant();
     }
 
     @Override

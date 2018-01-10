@@ -73,6 +73,7 @@ public class TimestampParser {
             }
             return TimestampParserJava.of(pattern.substring(5),
                                           zoneOffset);
+        } else if (pattern.startsWith("ruby:")) {
         } else {
             return TimestampParserLegacy.of(pattern,
                                             TimeZoneIds.parseZoneIdWithJodaAndRubyZoneTab(defaultZoneIdString),
@@ -92,6 +93,7 @@ public class TimestampParser {
             }
             return TimestampParserJava.of(pattern.substring(5),
                                           zoneOffset);
+        } else if (pattern.startsWith("ruby:")) {
         } else {
             return TimestampParserLegacy.of(pattern,
                                             TimeZoneIds.parseZoneIdWithJodaAndRubyZoneTab(defaultZoneIdString),
@@ -116,6 +118,7 @@ public class TimestampParser {
             }
             return TimestampParserJava.of(pattern.substring(5),
                                           zoneOffset);
+        } else if (pattern.startsWith("ruby:")) {
         } else {
             return TimestampParserLegacy.of(pattern,
                                             TimeZoneIds.parseZoneIdWithJodaAndRubyZoneTab(
